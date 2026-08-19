@@ -10,7 +10,7 @@ Bruce and Tony review the result.
 Push this repo to GitHub as `CosmosDever/avengers`, then inside Claude Code:
 
 ```
-/plugin marketplace add CosmosDever/avengers
+/plugin marketplace add CosmosDever/AvengersCluadeCode
 /plugin install avengers@avengers-marketplace
 ```
 
