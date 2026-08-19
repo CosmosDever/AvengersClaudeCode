@@ -44,7 +44,4 @@ plugins/
 
 ## Note
 
-This bundle uses Claude Code's native **plugin** system (agents + slash command), not the third-party
-`npx skills` tool — `npx skills` only installs `SKILL.md`-based skills, which is a different mechanism
-that doesn't support bundling separate subagents or slash commands. See the main chat response for the
-skill-based alternative if you specifically want `npx skills add` to work.
+This bundle uses Claude Code's native **plugin** system (agents + slash command) to work.
