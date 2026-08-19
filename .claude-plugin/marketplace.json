@@ -1,11 +1,10 @@
 {
   "name": "avengers-marketplace",
   "owner": { "name": "CosmosDever" },
-  "metadata": { "pluginRoot": "./plugins" },
   "plugins": [
     {
       "name": "avengers",
-      "source": "avengers",
+      "source": "./plugins/avengers",
       "description": "Bruce/Tony/Thor/Steve/Reed design-then-build multi-agent workflow: Bruce and Tony debate a design up to 5 rounds, Thor mediates and hands the decision to the user if they don't converge, Steve plans and self-scrutinizes, Reed implements, Bruce and Tony review the result."
     }
   ]
