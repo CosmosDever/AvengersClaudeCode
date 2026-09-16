@@ -6,7 +6,7 @@ override complexity score), Bruce and Tony debate over a small versioned **canon
 ACCEPT/PATCH/BLOCK deltas validated and applied by a dependency-free Node engine, never a replayed
 transcript — Thor mediates and hands unresolved calls to the user, Steve plans and self-scrutinizes,
 Reed implements with bundled Ponytail, then Bruce (correctness) and Tony (Ponytail Review) review the
-result and drive a bounded fix loop. See `AVENGERS_V2_REVISED_PLAN.md` for the full design.
+result and drive a bounded fix loop.
 
 ## Install
 
