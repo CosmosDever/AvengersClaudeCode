@@ -1,65 +1,82 @@
-# avengers
+# Avengers — a design-then-build multi-agent workflow for Claude Code
 
-A Claude Code plugin marketplace bundling the Bruce / Tony / Thor / Steve / Reed design-then-build
-multi-agent workflow. v2: a deterministic router classifies the task as SMALL/MEDIUM/HIGH (risk flags
-override complexity score), Bruce and Tony debate over a small versioned **canonical state** —
-ACCEPT/PATCH/BLOCK deltas validated and applied by a dependency-free Node engine, never a replayed
-transcript — Thor mediates and hands unresolved calls to the user, Steve plans and self-scrutinizes,
-Reed implements with bundled Ponytail, then Bruce (correctness) and Tony (Ponytail Review) review the
-result and drive a bounded fix loop.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A Claude Code plugin that runs five specialised agents through a design → plan → build → review loop:
+
+| Agent | Role | Model |
+|-------|------|-------|
+| **Bruce** | Rigorous design partner; final correctness review | `opus` |
+| **Tony** | Bold design partner; final complexity review (Ponytail Review) | `opus` |
+| **Thor** | Neutral mediator when Bruce and Tony can't converge | `opus` |
+| **Steve** | Turns the converged design into an ordered, scrutinized plan | `opus` |
+| **Reed** | Implements the plan with bundled Ponytail; runs fix cycles | `sonnet` |
+
+## How it works
+
+1. A deterministic router classifies the task as **SMALL / MEDIUM / HIGH** (risk flags override the complexity score).
+2. Bruce and Tony debate over a small, versioned **canonical state** using `ACCEPT` / `PATCH` / `BLOCK` deltas. A dependency-free Node engine validates and applies each delta, so the agents never replay a transcript.
+3. If the debate runs out of calls or hits an unresolved `BLOCK`, Thor summarises both positions and passes the decision to you.
+4. Steve plans from the final state, and Reed builds it.
+5. Bruce (correctness) and Tony (complexity) review the result and run a bounded fix loop.
+
+The deterministic parts (patch validation, versioned approval, convergence, debate budgets, routing) live in tested code in [`scripts/state.js`](plugins/avengers/scripts/state.js). The agents handle the parts that need judgment.
 
 ## Install
 
-inside Claude Code:
+Inside Claude Code:
 
 ```
-/plugin marketplace add CosmosDever/AvengersCluadeCode
+/plugin marketplace add CosmosDever/AvengersClaudeCode
 /plugin install avengers@avengers-marketplace
 ```
 
-## Use
+## Usage
 
 ```
 /avengers <describe the problem you want designed and built>
 ```
 
-Or call the individual agents directly by name (`bruce`, `tony`, `thor`, `steve`, `reed`) whenever you
-just want one of their perspectives without running the full workflow.
+You can also call any agent directly (`bruce`, `tony`, `thor`, `steve`, `reed`) when you only want its view.
 
-## Structure
+### Changing models
+
+Each agent's model is set in the `model:` field of its frontmatter in [`plugins/avengers/agents/`](plugins/avengers/agents/). Accepted values are `opus`, `sonnet`, `haiku`, `inherit` (uses the main session's model), or a full model ID.
+
+## Project structure
 
 ```
 .claude-plugin/
-  marketplace.json        # marketplace catalog (this repo)
-plugins/
-  avengers/
-    .claude-plugin/
-      plugin.json          # plugin manifest
-    agents/
-      bruce.md              # design debate (correctness) + final correctness review
-      tony.md                # design debate (leverage) + final Ponytail Review pass
-      thor.md                 # mediator, called only if debate exhausts its call budget
-      steve.md                  # plans from the final converged state only
-      reed.md                    # implements with bundled Ponytail; runs fix cycles
-    commands/
-      avengers.md          # the /avengers orchestrator command (owns the canonical state)
-    scripts/
-      state.js             # dependency-free canonical-state engine: init/apply/render
-      state.test.js         # node --test: patch validator & convergence rules, in-process
-      smoke.test.js          # node --test: same flows through the real `node state.js` CLI/files
-    third_party/ponytail/  # vendored Ponytail + Ponytail Review skills (MIT, pinned version)
+  marketplace.json          # marketplace catalog
+plugins/avengers/
+  .claude-plugin/plugin.json  # plugin manifest
+  agents/                     # bruce, tony, thor, steve, reed
+  commands/avengers.md        # /avengers orchestrator (sole writer of the canonical state)
+  scripts/
+    state.js                  # canonical-state engine: init / apply / render
+    state.test.js             # unit tests: validator and convergence rules
+    smoke.test.js             # integration tests: the real CLI against files on disk
+  third_party/ponytail/       # vendored Ponytail skills (MIT, pinned)
 ```
 
-Run the tests with `node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js`
-(Node 18+, no install step — zero dependencies by design). `state.test.js` calls the validator/convergence
-functions directly; `smoke.test.js` spawns the actual CLI against real files to catch what unit tests
-can't — argument parsing, JSON-on-disk round-tripping, exit codes, and whether the exact call sequence
-`commands/avengers.md` documents still works if followed literally.
+## Development
 
-## Note
+Requires Node 18+. There are no dependencies and no install step.
 
-This bundle uses Claude Code's native **plugin** system (agents + slash command) to work. The orchestration
-logic that's actually deterministic (patch validation, versioned approval, convergence, debate-call
-budgets, SMALL/MEDIUM/HIGH routing) lives in real, tested code in `scripts/state.js` — not in a prompt
-asking an LLM to self-validate. Everything that requires judgment (reading the task, proposing a design,
-writing code) stays with the agents.
+```
+node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js
+```
+
+## Contributing
+
+Issues and pull requests are welcome. Before you open a PR:
+
+1. Run the tests above and make sure they pass.
+2. Keep `scripts/state.js` dependency-free.
+3. If you change the CLI or the state/delta shape, update `commands/avengers.md` and `smoke.test.js` to match.
+
+## License
+
+[MIT](LICENSE) © 2026 CosmosDever.
+
+Vendored [Ponytail](https://github.com/DietrichGebert/ponytail) files are © DietrichGebert under MIT. See [`third_party/ponytail/LICENSE`](plugins/avengers/third_party/ponytail/LICENSE).

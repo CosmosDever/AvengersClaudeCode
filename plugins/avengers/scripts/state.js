@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 'use strict';
 
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 CosmosDever
+
 /*
  * Avengers v2 canonical-state engine.
  *
- * Pure, dependency-free logic for the parts of the design (AVENGERS_V2_REVISED_PLAN.md)
+ * Pure, dependency-free logic for the parts of the workflow
  * that don't require judgment: patch validation, versioned approval, convergence,
  * debate call budgets, and route derivation. The orchestrating agent (running /avengers)
  * shells out to this file via `node`; no agent ever writes the state file directly.
@@ -51,7 +54,7 @@ const KNOWN_PATCH_SECTIONS = [
 ];
 
 const BUDGET = { MEDIUM: 3, HIGH: 5 };
-const MAX_HISTORY = 6; // ponytail: fixed-length ring buffer instead of token-aware compaction (section 14); revisit if state.render ever approaches the ~1400 soft-limit token guidance in practice.
+const MAX_HISTORY = 6; // ponytail: fixed-length ring buffer instead of token-aware compaction; revisit if state.render ever approaches the ~1400 soft-limit token guidance in practice.
 
 function classifyRoute(complexityScore, riskFlags) {
   const anyRisk = Object.values(riskFlags || {}).some(Boolean);

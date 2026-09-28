@@ -1,5 +1,8 @@
 'use strict';
 
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 CosmosDever
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { classifyRoute, initState, apply, isConverged, render } = require('./state.js');
@@ -14,7 +17,7 @@ function freshState(overrides = {}) {
   }, overrides));
 }
 
-// --- section 30: routing fixtures ---
+// --- routing fixtures ---
 
 test('routing: score 0, no risk => SMALL', () => {
   assert.equal(classifyRoute(0, {}), 'SMALL');
@@ -52,7 +55,7 @@ test('routing: score 3 forces HIGH even with no risk flags', () => {
   assert.equal(classifyRoute(3, {}), 'HIGH');
 });
 
-// --- section 29: PR1 convergence fixtures ---
+// --- convergence fixtures ---
 
 test('case 1: immediate agreement converges in 2 calls', () => {
   let s = freshState();
@@ -147,7 +150,7 @@ test('case 8: repeated identical blocker is NO_STATE_CHANGE and does not re-spen
   assert.equal(r.state.debate_calls, 2, 'budget is still consumed even when rejected as a repeat');
 });
 
-// --- extra: protections that section 5/13/14 call out explicitly ---
+// --- state-integrity protections (agents cannot forge approvals/versions/history) ---
 
 test('agents cannot write approvals or version directly', () => {
   const s = freshState();

@@ -1,5 +1,8 @@
 'use strict';
 
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 CosmosDever
+
 /*
  * Integration/smoke coverage for the actual `node state.js <cmd>` CLI, run as a real
  * subprocess against real files on disk — not the in-process functions state.test.js
