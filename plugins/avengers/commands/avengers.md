@@ -47,7 +47,7 @@ Run `init`. It tells you the derived `route` (`SMALL`/`MEDIUM`/`HIGH`) — that'
 
 ## Step 1 — Design debate (skip entirely for `SMALL`)
 
-Model policy for this phase: **Bruce** = `opus` if `HIGH`, else `sonnet`. **Tony** = `sonnet` always.
+Model policy for this phase: **Bruce** = `opus` if `HIGH`, else `sonnet` (frontmatter default is `sonnet`; pass `model: opus` on the Agent invocation to override for `HIGH`). **Tony** = `sonnet` always. When Bruce runs as `opus` on a `HIGH` route, effort must be high — the Agent tool has no per-invocation effort parameter, so there is no API to set this; state it plainly in Bruce's prompt for that invocation (e.g. "you are running at opus, effort high — reason accordingly") and rely on the model honoring it.
 
 Loop:
 1. Run `render` to get the current compact state text.
@@ -109,7 +109,7 @@ Run the project's actual test/lint/typecheck commands per the state's `verificat
 
 ## Step 5 — Review
 
-- **Bruce**: skip for `SMALL` unless a risk override surfaced anywhere above (routing risk flag, Reed's `REOPEN_DESIGN`, or a verification failure that smells like a correctness/security issue). Otherwise always run. Model: `sonnet` normally, `opus` only if the state carries unresolved critical-reasoning risk from a `HIGH` route.
+- **Bruce**: skip for `SMALL` unless a risk override surfaced anywhere above (routing risk flag, Reed's `REOPEN_DESIGN`, or a verification failure that smells like a correctness/security issue). Otherwise always run. Model: `sonnet` normally, `opus` only if the state carries unresolved critical-reasoning risk from a `HIGH` route (pass `model: opus` on the Agent invocation; frontmatter default is `sonnet`). As in Step 1, that `opus` invocation must run at effort high; there is no per-invocation effort parameter on the Agent tool, so say so directly in the prompt for that call.
 - **Tony**: always run. Model: `haiku`. This is the Ponytail Review pass.
 
 Give both the final state, the actual diff, and the verification result — not Reed's narration.

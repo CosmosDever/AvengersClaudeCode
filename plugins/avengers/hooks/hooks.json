@@ -1,0 +1,18 @@
+{
+  "description": "Truncates oversized Bash stdout/stderr (head+tail, ~8,000 chars) before it reaches context. Fails open on any error.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/truncate-tool-output.js"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
