@@ -26,7 +26,7 @@ The deterministic parts (patch validation, versioned approval, convergence, deba
 
 ### Token gate
 
-A `PostToolUse` hook ([`hooks/hooks.json`](plugins/avengers/hooks/hooks.json)) runs [`scripts/truncate-tool-output.js`](plugins/avengers/scripts/truncate-tool-output.js) on every `Bash` tool call. If combined stdout+stderr exceeds ~8,000 characters, it keeps the first and last ~4,000 characters of each oversized stream and replaces the middle with a `[... N chars / ~M tokens omitted ...]` marker — deterministic truncation, no summarization, no network calls. Any internal error, non-`Bash` tool, or already-small output leaves the original output untouched (fail open).
+A `PostToolUse` hook ([`hooks/hooks.json`](plugins/avengers/hooks/hooks.json)) runs [`scripts/truncate-tool-output.js`](plugins/avengers/scripts/truncate-tool-output.js) on every `Bash` tool call. If combined stdout+stderr exceeds ~8,000 characters, it trims the output back to ~8,000 characters in total: the budget is split between stdout and stderr (a short stream passes through whole and gives its unused share to the other), and each stream that's over its share keeps its start and end with a `[... N chars / ~M tokens omitted ...]` marker in the middle — deterministic truncation, no summarization, no network calls. Any internal error, non-`Bash` tool, or already-small output leaves the original output untouched (fail open).
 
 ## Install
 
