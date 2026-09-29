@@ -1,5 +1,5 @@
 {
-  "description": "Truncates oversized Bash stdout/stderr (head+tail, ~8,000 chars) before it reaches context. Fails open on any error.",
+  "description": "Truncates oversized Bash stdout/stderr (head+tail, ~8,000 chars) before it reaches context. Fails open on any error. AVENGERS_TRUNCATE=off disables; AVENGERS_TRUNCATE_CHARS overrides the budget.",
   "hooks": {
     "PostToolUse": [
       {

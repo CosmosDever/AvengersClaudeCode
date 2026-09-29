@@ -11,8 +11,8 @@ const { truncate } = require('./truncate-tool-output.js');
 
 const SCRIPT = path.join(__dirname, 'truncate-tool-output.js');
 
-function runCli(input) {
-  const out = execFileSync('node', [SCRIPT], { input: JSON.stringify(input), encoding: 'utf8' });
+function runCli(input, env = {}) {
+  const out = execFileSync('node', [SCRIPT], { input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, ...env } });
   return out;
 }
 
@@ -78,6 +78,23 @@ test('truncate: isImage true passes through untruncated even if oversized', () =
   assert.equal(result, null);
 });
 
+test('truncate: AVENGERS_TRUNCATE=off disables the gate', () => {
+  const input = { tool_name: 'Bash', tool_response: { stdout: 'A'.repeat(20000), stderr: '', interrupted: false, isImage: false } };
+  for (const v of ['off', 'OFF', '0', 'false']) assert.equal(truncate(input, { AVENGERS_TRUNCATE: v }), null);
+  assert.ok(truncate(input, { AVENGERS_TRUNCATE: 'on' }));
+});
+
+test('truncate: AVENGERS_TRUNCATE_CHARS overrides the budget; junk falls back to 8000', () => {
+  const input = { tool_name: 'Bash', tool_response: { stdout: 'A'.repeat(20000), stderr: '', interrupted: false, isImage: false } };
+  const small = truncate(input, { AVENGERS_TRUNCATE_CHARS: '1000' });
+  assert.ok(small.stdout.length < 1100, `got ${small.stdout.length}`);
+  assert.equal(truncate(input, { AVENGERS_TRUNCATE_CHARS: '50000' }), null);
+  for (const v of ['abc', '-5', '0', '1.5']) {
+    const r = truncate(input, { AVENGERS_TRUNCATE_CHARS: v });
+    assert.ok(r.stdout.length > 7800 && r.stdout.length < 8100, `${v}: got ${r.stdout.length}`);
+  }
+});
+
 // --- subprocess smoke test: the actual hook contract over stdin/stdout ---
 
 test('truncate CLI: oversized input on stdin produces the hookSpecificOutput envelope', () => {
@@ -90,6 +107,11 @@ test('truncate CLI: oversized input on stdin produces the hookSpecificOutput env
 
 test('truncate CLI: small input produces no stdout at all', () => {
   const out = runCli({ tool_name: 'Bash', tool_response: { stdout: 'hi', stderr: '', interrupted: false, isImage: false } });
+  assert.equal(out, '');
+});
+
+test('truncate CLI: AVENGERS_TRUNCATE=off in the hook env produces no stdout', () => {
+  const out = runCli({ tool_name: 'Bash', tool_response: { stdout: 'A'.repeat(9000), stderr: '', interrupted: false, isImage: false } }, { AVENGERS_TRUNCATE: 'off' });
   assert.equal(out, '');
 });
 

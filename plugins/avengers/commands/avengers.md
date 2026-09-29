@@ -6,7 +6,17 @@ Run this workflow for: $ARGUMENTS
 
 You are the **orchestrator**. You are the *only* thing allowed to write the canonical state file. Every agent below (`avengers:bruce`, `avengers:tony`, `avengers:thor`, `avengers:steve`, `avengers:reed`) gets exactly the slice of state it needs and returns a small structured block — never the full conversation, never each other's raw responses. This is the core of the v2 design: a small validated shared state beats a big replayed transcript, both for cost and for determinism.
 
-All state lives in a scratch working directory for this run (use the session scratchpad directory if one is available, otherwise a fresh temp dir) — call it `$WORK`. The engine is `${CLAUDE_PLUGIN_ROOT}/scripts/state.js`, a plain Node script with no dependencies; use the `Bash` tool to run it. Its three subcommands:
+All state for this run lives on disk in the repo at `.avengers/<run-id>/` — call it `$WORK` — so a dropped session or a context compaction mid-run loses nothing. `<run-id>` is the UTC start time as `YYYYMMDD-HHMMSS`. On a new run, if `.avengers/.gitignore` doesn't exist, write it with the single line `*` so run files never get committed. Files in `$WORK`: `init.json`, `state.json`, `delta.json` (engine-owned, as below), `plan.md` (Steve's output, verbatim), and `progress.json`, which only you write, and which you update at every step boundary:
+```json
+{ "task": "<$ARGUMENTS>", "started_at": "<ISO timestamp>", "step": "2", "fix_cycles": 0, "auto_run": false, "notes": ["one line per thing a resumed orchestrator must know, e.g. 'user approved plan'"] }
+```
+`step` is the step you are *entering* (`"0"`, `"1"`, `"1b"`, `"2"` … `"7"`, `"done"`). After a compaction, re-read `progress.json` and `render` the state rather than trusting your summary of them.
+
+### Resume
+
+If `$ARGUMENTS` is `resume` or `resume <run-id>`: pick that run, or else the newest directory in `.avengers/` whose `progress.json` `step` isn't `"done"`. Read `progress.json`, `render` `state.json`, and read `plan.md` if it exists; tell the user in one line which run and step you're resuming, then continue from `step`. Redo the interrupted step from its start — except Step 3, where you first give Reed the current `git diff` and tell it to skip plan steps that are already done and verified. Nothing is replayed; the files are the memory. If no unfinished run exists, say so and stop.
+
+The engine is `${CLAUDE_PLUGIN_ROOT}/scripts/state.js`, a plain Node script with no dependencies; use the `Bash` tool to run it. Its three subcommands:
 
 ```
 node "${CLAUDE_PLUGIN_ROOT}/scripts/state.js" init   <init.json> <state.json>
@@ -15,6 +25,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/state.js" render <state.json>
 ```
 
 `init` and `apply` print a small JSON result to stdout (`route`, `applied`, `reason`, `converged`, `budget`, ...) — read it, don't guess. `apply` rejects invalid/stale/malformed deltas and leaves the state file untouched when it does; always report what it actually did, never assume a delta landed. Every `apply` call — whether from the design-debate loop or the one-off Thor-decision patch in Step 1b — counts against the same debate-call budget; review findings (Step 5) never go through `apply` at all, they're tracked directly by you as plain findings, so there's nothing else competing for that budget.
+
+---
+
+**Models:** wherever this file says `sonnet`, it means `claude-sonnet-5-5`, which each agent's frontmatter pins. For a `sonnet` step, **don't pass `model`** on the Agent call: the Agent tool's `sonnet` alias can resolve to an older Sonnet and would override the pin. Pass `model` only for `opus` / `haiku` overrides.
 
 ---
 
@@ -83,7 +97,7 @@ Translate the user's decision into one final `PATCH` (or a `blockers.resolve` pa
 
 Model: `haiku` for `SMALL`/`MEDIUM`, `sonnet` for `HIGH`.
 
-Give Steve **only** the final `render` output — not the debate, not the history of how it got there. If Steve returns `PLAN_BLOCKED`, the state is internally inconsistent; do not patch around it yourself — that's a real problem, surface it to the user before continuing.
+Give Steve **only** the final `render` output — not the debate, not the history of how it got there. Save Steve's plan verbatim to `$WORK/plan.md`. If a `public_api` or `destructive` risk flag is set and a step touching it lacks the `facts` / `rollback` fields that `steve.md` requires, or a `destructive` step's `rollback` is missing or literally `unknown`, send it back to Steve once to fill them in — don't fill them in yourself. If Steve returns `PLAN_BLOCKED`, the state is internally inconsistent; do not patch around it yourself — that's a real problem, surface it to the user before continuing.
 
 Show the user the plan before implementation, unless they already said to proceed automatically for this run.
 
@@ -112,13 +126,13 @@ Run the project's actual test/lint/typecheck commands per the state's `verificat
 - **Bruce**: skip for `SMALL` unless a risk override surfaced anywhere above (routing risk flag, Reed's `REOPEN_DESIGN`, or a verification failure that smells like a correctness/security issue). Otherwise always run. Model: `sonnet` normally, `opus` only if the state carries unresolved critical-reasoning risk from a `HIGH` route (pass `model: opus` on the Agent invocation; frontmatter default is `sonnet`). As in Step 1, that `opus` invocation must run at effort high; there is no per-invocation effort parameter on the Agent tool, so say so directly in the prompt for that call.
 - **Tony**: always run. Model: `haiku`. This is the Ponytail Review pass.
 
-Give both the final state, the actual diff, and the verification result — not Reed's narration.
+Give both the final state, the actual diff, and the verification result — not Reed's narration. Tell both: any change to lint/format/type-check/test config, or any added suppression (`eslint-disable`, `# noqa`, `@ts-ignore`, `.skip`), that the plan didn't call for is a `high` finding — it makes the checks pass without fixing the code.
 
 ---
 
 ## Step 6 — Fix loop
 
-Budget: `SMALL`/`MEDIUM` = 1 fix cycle, `HIGH` = 2 fix cycles. Track this as a plain counter in your own notes — it's one comparison, it doesn't need the state engine.
+Budget: `SMALL`/`MEDIUM` = 1 fix cycle, `HIGH` = 2 fix cycles. Track this as the `fix_cycles` counter in `progress.json` — it's one comparison, it doesn't need the state engine.
 
 While there are open findings (from either reviewer's `REVIEW.findings`) and the budget isn't exhausted:
 1. Collect only the *open* findings (id, severity, location, issue, required_fix) — not the reviewers' reasoning.
@@ -139,6 +153,9 @@ Tell the user, concisely:
 - What Reed built and how it was verified.
 - Review outcome: any findings, fixed or still open.
 - Debate calls used / budget, and fix cycles used / budget — this is the whole point of the v2 rework, so don't bury it.
+- Real token usage and estimated cost: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/usage.js" <progress.started_at>` from the repo root and paste its table as-is. It reads Claude Code's own transcripts, so it covers resumed sessions too. If it prints no rows, say so; don't estimate.
+
+Then set `progress.json` `step` to `"done"`.
 
 ## Where you must stay in the loop with the user
 

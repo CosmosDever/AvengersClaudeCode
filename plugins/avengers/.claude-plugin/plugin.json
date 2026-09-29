@@ -1,7 +1,7 @@
 {
   "name": "avengers",
   "description": "Bruce/Tony/Thor/Steve/Reed design-then-build multi-agent workflow, backed by a versioned canonical state and deterministic routing instead of a replayed debate transcript",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "author": { "name": "CosmosDever" },
   "homepage": "https://github.com/CosmosDever/AvengersClaudeCode",
   "repository": "https://github.com/CosmosDever/AvengersClaudeCode",

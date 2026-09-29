@@ -6,11 +6,11 @@ A Claude Code plugin that runs five specialised agents through a design → plan
 
 | Agent | Role | Frontmatter default | Notes |
 |-------|------|----------------------|-------|
-| **Bruce** | Rigorous design partner; final correctness review | `sonnet` | `/avengers` bumps this to `opus` (effort high) for `HIGH`-route debate and for review when unresolved critical-reasoning risk carries over |
-| **Tony** | Bold design partner; final complexity review (Ponytail Review) | `sonnet` | Review pass runs on `haiku` |
+| **Bruce** | Rigorous design partner; final correctness review | `claude-sonnet-5-5` | `/avengers` bumps this to `opus` (effort high) for `HIGH`-route debate and for review when unresolved critical-reasoning risk carries over |
+| **Tony** | Bold design partner; final complexity review (Ponytail Review) | `claude-sonnet-5-5` | Review pass runs on `haiku` |
 | **Thor** | Neutral mediator when Bruce and Tony can't converge | `opus` | `effort: high` |
-| **Steve** | Turns the converged design into an ordered, scrutinized plan | `sonnet` | |
-| **Reed** | Implements the plan with bundled Ponytail; runs fix cycles | `sonnet` | |
+| **Steve** | Turns the converged design into an ordered, scrutinized plan | `claude-sonnet-5-5` | |
+| **Reed** | Implements the plan with bundled Ponytail; runs fix cycles | `claude-sonnet-5-5` | |
 
 `/avengers` picks the actual per-step model by route (see `commands/avengers.md`) — the table above is each agent's frontmatter default, used when you call an agent directly.
 
@@ -28,6 +28,19 @@ The deterministic parts (patch validation, versioned approval, convergence, deba
 
 A `PostToolUse` hook ([`hooks/hooks.json`](plugins/avengers/hooks/hooks.json)) runs [`scripts/truncate-tool-output.js`](plugins/avengers/scripts/truncate-tool-output.js) on every `Bash` tool call. If combined stdout+stderr exceeds ~8,000 characters, it trims the output back to ~8,000 characters in total: the budget is split between stdout and stderr (a short stream passes through whole and gives its unused share to the other), and each stream that's over its share keeps its start and end with a `[... N chars / ~M tokens omitted ...]` marker in the middle — deterministic truncation, no summarization, no network calls. Any internal error, non-`Bash` tool, or already-small output leaves the original output untouched (fail open).
 
+The hook runs for every `Bash` call in the session, not only during `/avengers`. To change that, set these in your environment or in the `env` block of `settings.json`:
+
+- `AVENGERS_TRUNCATE=off` turns the gate off, for when you need full logs.
+- `AVENGERS_TRUNCATE_CHARS=20000` changes the ~8,000-character budget.
+
+### Run state and resume
+
+Each run keeps its state in `.avengers/<run-id>/` in your repo: the canonical state, Steve's plan, and a `progress.json` recording the current step. The folder has its own `.gitignore`, so nothing gets committed. If a session drops or gets compacted mid-run, pick it up with `/avengers resume` (or `/avengers resume <run-id>`).
+
+### Cost report
+
+The final summary includes real token usage and estimated cost per agent and model. [`scripts/usage.js`](plugins/avengers/scripts/usage.js) reads these from Claude Code's own transcripts, not from the call count. You can also run it yourself: `node plugins/avengers/scripts/usage.js <since-ISO-timestamp> [repo-path]`.
+
 ## Install
 
 Inside Claude Code:
@@ -41,6 +54,7 @@ Inside Claude Code:
 
 ```
 /avengers <describe the problem you want designed and built>
+/avengers resume [run-id]
 ```
 
 You can also call any agent directly (`bruce`, `tony`, `thor`, `steve`, `reed`) when you only want its view.
@@ -65,6 +79,8 @@ plugins/avengers/
     smoke.test.js             # integration tests: the real CLI against files on disk
     truncate-tool-output.js       # PostToolUse gate: head+tail truncation of oversized Bash output
     truncate-tool-output.test.js  # unit + subprocess tests for the gate
+    usage.js                  # per-run token/cost report from Claude Code transcripts
+    usage.test.js             # tests against a fake transcript tree
   third_party/ponytail/       # vendored Ponytail skills (MIT, pinned)
 ```
 
@@ -73,7 +89,7 @@ plugins/avengers/
 Requires Node 18+. There are no dependencies and no install step.
 
 ```
-node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js plugins/avengers/scripts/truncate-tool-output.test.js
+node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js plugins/avengers/scripts/truncate-tool-output.test.js plugins/avengers/scripts/usage.test.js
 ```
 
 ## Contributing

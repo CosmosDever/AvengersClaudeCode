@@ -9,9 +9,19 @@
  * single noisy command can't blow the context budget. No network/API calls, no
  * summarization — just chars in, chars out. Any internal error fails open
  * (emit nothing, exit 0) so a gate bug never breaks the original tool output.
+ *
+ * Env: AVENGERS_TRUNCATE=off|0|false disables the gate entirely;
+ * AVENGERS_TRUNCATE_CHARS=<positive int> overrides the 8000-char budget.
  */
 
-const LIMIT = 8000;
+const DEFAULT_LIMIT = 8000;
+
+// Returns the char budget, or null if the gate is switched off.
+function limitFromEnv(env) {
+  if (/^(off|0|false|no)$/i.test(String(env.AVENGERS_TRUNCATE || '').trim())) return null;
+  const n = Number(env.AVENGERS_TRUNCATE_CHARS);
+  return Number.isInteger(n) && n > 0 ? n : DEFAULT_LIMIT;
+}
 
 // If cutting at `end` would split a surrogate pair, back off by one so the
 // head keeps a whole code unit pair together.
@@ -39,7 +49,9 @@ function truncateToBudget(s, budget) {
 
 // Pure: given a hook input object, returns the updatedToolOutput object, or
 // null if no truncation is needed / applicable.
-function truncate(input) {
+function truncate(input, env = process.env) {
+  const LIMIT = limitFromEnv(env);
+  if (LIMIT === null) return null;
   if (!input || input.tool_name !== 'Bash') return null;
   const r = input.tool_response;
   if (!r || typeof r !== 'object' || typeof r.stdout !== 'string' || typeof r.stderr !== 'string') return null;
