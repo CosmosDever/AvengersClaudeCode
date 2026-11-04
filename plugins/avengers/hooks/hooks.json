@@ -1,6 +1,18 @@
 {
-  "description": "Truncates oversized Bash stdout/stderr (head+tail, ~8,000 chars) before it reaches context. Fails open on any error. AVENGERS_TRUNCATE=off disables; AVENGERS_TRUNCATE_CHARS overrides the budget.",
+  "description": "PostToolUse: truncates oversized Bash stdout/stderr (head+tail, ~8,000 chars); AVENGERS_TRUNCATE=off disables, AVENGERS_TRUNCATE_CHARS overrides the budget. UserPromptSubmit: names up to 3 relevant skills next to the prompt; AVENGERS_SKILL_HINT=off disables. Both fail open on any error.",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/skills.js", "hook"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Bash",

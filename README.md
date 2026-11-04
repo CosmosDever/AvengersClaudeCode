@@ -33,6 +33,16 @@ The hook runs for every `Bash` call in the session, not only during `/avengers`.
 - `AVENGERS_TRUNCATE=off` turns the gate off, for when you need full logs.
 - `AVENGERS_TRUNCATE_CHARS=20000` changes the ~8,000-character budget.
 
+### Skills: harvest and hint
+
+After a successful run, `/avengers` checks whether the run produced reusable, repo-specific know-how (a procedure, a gotcha that cost a fix cycle, a verification recipe). If it did, it drafts a skill, or an edit to a similar existing one, and writes it to `.claude/skills/<name>/SKILL.md` **only after you approve it**. Most runs produce nothing.
+
+A long skill list can bury the relevant skill in the middle of the context. To prevent that, a `UserPromptSubmit` hook runs [`scripts/skills.js`](plugins/avengers/scripts/skills.js) on every prompt you send. It scores the skills in `.claude/skills/` and `~/.claude/skills/` by their `name`, `keywords` and `description`, then adds up to 3 matches right next to your prompt. Matching is plain word matching with no AI and no network calls: ASCII terms must match whole words, and other text (such as Thai) matches as a substring. Any error adds nothing (fail open). `/avengers` runs the same match in Step 0 and passes the skill paths to Steve and Reed, because subagents don't see the hook.
+
+- `AVENGERS_SKILL_HINT=off` turns the hint off.
+- Add a `keywords: [..]` line to a skill's frontmatter to make matching sharper.
+- Try it yourself: `node plugins/avengers/scripts/skills.js match "deploy to staging"`.
+
 ### Run state and resume
 
 Each run keeps its state in `.avengers/<run-id>/` in your repo: the canonical state, Steve's plan, and a `progress.json` recording the current step. The folder has its own `.gitignore`, so nothing gets committed. If a session drops or gets compacted mid-run, pick it up with `/avengers resume` (or `/avengers resume <run-id>`).
@@ -72,7 +82,7 @@ plugins/avengers/
   .claude-plugin/plugin.json  # plugin manifest
   agents/                     # bruce, tony, thor, steve, reed
   commands/avengers.md        # /avengers orchestrator (sole writer of the canonical state)
-  hooks/hooks.json            # PostToolUse token gate registration (Bash only)
+  hooks/hooks.json            # PostToolUse token gate (Bash) + UserPromptSubmit skill hint
   scripts/
     state.js                  # canonical-state engine: init / apply / render
     state.test.js             # unit tests: validator and convergence rules
@@ -81,6 +91,8 @@ plugins/avengers/
     truncate-tool-output.test.js  # unit + subprocess tests for the gate
     usage.js                  # per-run token/cost report from Claude Code transcripts
     usage.test.js             # tests against a fake transcript tree
+    skills.js                 # skill matcher: CLI + UserPromptSubmit hint hook
+    skills.test.js            # matcher and hook tests
   third_party/ponytail/       # vendored Ponytail skills (MIT, pinned)
 ```
 
@@ -89,7 +101,7 @@ plugins/avengers/
 Requires Node 18+. There are no dependencies and no install step.
 
 ```
-node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js plugins/avengers/scripts/truncate-tool-output.test.js plugins/avengers/scripts/usage.test.js
+node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js plugins/avengers/scripts/truncate-tool-output.test.js plugins/avengers/scripts/usage.test.js plugins/avengers/scripts/skills.test.js
 ```
 
 ## Contributing
