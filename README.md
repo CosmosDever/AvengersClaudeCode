@@ -6,14 +6,14 @@ A Claude Code plugin that runs specialised agents through a design → plan → 
 
 | Agent | Role | Frontmatter default | Notes |
 |-------|------|----------------------|-------|
-| **Bruce** | Rigorous design partner; final correctness review | `claude-sonnet-5-5` | `/avengers` bumps this to `opus` (effort high) for `HIGH`-route debate and for review when unresolved critical-reasoning risk carries over |
+| **Bruce** | Rigorous design partner; final correctness review | `claude-sonnet-5-5` | `/avengers:avengers` bumps this to `opus` (effort high) for `HIGH`-route debate and for review when unresolved critical-reasoning risk carries over |
 | **Tony** | Bold design partner; final complexity review (Ponytail Review) | `claude-sonnet-5-5` | Review pass runs on `haiku` |
 | **Thor** | Neutral mediator when Bruce and Tony can't converge | `opus` | `effort: high` |
 | **Steve** | Turns the converged design into an ordered, scrutinized plan | `claude-sonnet-5-5` | |
 | **Reed** | Implements the plan with bundled Ponytail; runs fix cycles | `claude-sonnet-5-5` | |
-| **Friday** | Memory librarian: filters, merges, and verifies past knowledge | `claude-sonnet-5-5` | Only runs during `/avengers migrate`; read-only |
+| **Friday** | Memory librarian: filters, merges, and verifies past knowledge | `claude-sonnet-5-5` | Only runs during `/avengers:avengers migrate`; read-only |
 
-`/avengers` picks the actual per-step model by route (see `commands/avengers.md`) — the table above is each agent's frontmatter default, used when you call an agent directly.
+`/avengers:avengers` picks the actual per-step model by route (see `commands/avengers.md`) — the table above is each agent's frontmatter default, used when you call an agent directly.
 
 ## How it works
 
@@ -29,16 +29,16 @@ The deterministic parts (patch validation, versioned approval, convergence, deba
 
 A `PostToolUse` hook ([`hooks/hooks.json`](plugins/avengers/hooks/hooks.json)) runs [`scripts/truncate-tool-output.js`](plugins/avengers/scripts/truncate-tool-output.js) on every `Bash` tool call. If combined stdout+stderr exceeds ~8,000 characters, it trims the output back to ~8,000 characters in total: the budget is split between stdout and stderr (a short stream passes through whole and gives its unused share to the other), and each stream that's over its share keeps its start and end with a `[... N chars / ~M tokens omitted ...]` marker in the middle — deterministic truncation, no summarization, no network calls. Any internal error, non-`Bash` tool, or already-small output leaves the original output untouched (fail open).
 
-The hook runs for every `Bash` call in the session, not only during `/avengers`. To change that, set these in your environment or in the `env` block of `settings.json`:
+The hook runs for every `Bash` call in the session, not only during `/avengers:avengers`. To change that, set these in your environment or in the `env` block of `settings.json`:
 
 - `AVENGERS_TRUNCATE=off` turns the gate off, for when you need full logs.
 - `AVENGERS_TRUNCATE_CHARS=20000` changes the ~8,000-character budget.
 
 ### Skills: harvest and hint
 
-After a successful run, `/avengers` checks whether the run produced reusable, repo-specific know-how (a procedure, a gotcha that cost a fix cycle, a verification recipe). If it did, it drafts a skill, or an edit to a similar existing one, and writes it to `.claude/skills/<name>/SKILL.md` **only after you approve it**. Most runs produce nothing.
+After a successful run, `/avengers:avengers` checks whether the run produced reusable, repo-specific know-how (a procedure, a gotcha that cost a fix cycle, a verification recipe). If it did, it drafts a skill, or an edit to a similar existing one, and writes it to `.claude/skills/<name>/SKILL.md` **only after you approve it**. Most runs produce nothing.
 
-A long skill list can bury the relevant skill in the middle of the context. To prevent that, a `UserPromptSubmit` hook runs [`scripts/skills.js`](plugins/avengers/scripts/skills.js) on every prompt you send. It scores the skills in `.claude/skills/` and `~/.claude/skills/` by their `name`, `keywords` and `description`, then adds up to 3 matches right next to your prompt. Matching is plain word matching with no AI and no network calls: ASCII terms must match whole words, and other text (such as Thai) matches as a substring. Any error adds nothing (fail open). `/avengers` runs the same match in Step 0 and passes the skill paths to Steve and Reed, because subagents don't see the hook.
+A long skill list can bury the relevant skill in the middle of the context. To prevent that, a `UserPromptSubmit` hook runs [`scripts/skills.js`](plugins/avengers/scripts/skills.js) on every prompt you send. It scores the skills in `.claude/skills/` and `~/.claude/skills/` by their `name`, `keywords` and `description`, then adds up to 3 matches right next to your prompt. Matching is plain word matching with no AI and no network calls: ASCII terms must match whole words, and other text (such as Thai) matches as a substring. Any error adds nothing (fail open). `/avengers:avengers` runs the same match in Step 0 and passes the skill paths to Steve and Reed, because subagents don't see the hook.
 
 - `AVENGERS_SKILL_HINT=off` turns the hint off.
 - Add a `keywords: [..]` line to a skill's frontmatter to make matching sharper.
@@ -67,17 +67,17 @@ A `UserPromptSubmit` hook adds the names and paths of up to 3 matching notes (pl
 After updating the plugin, the first session in a repo with past runs shows a one-line reminder. Nothing runs until you ask:
 
 ```
-/avengers migrate --dry-run   # preview: writes nothing to the vault
-/avengers migrate             # import, after you approve the notes
-/avengers migrate undo <id>   # remove what that import created
-/avengers migrate skip        # stop the reminder
+/avengers:avengers migrate --dry-run   # preview: writes nothing to the vault
+/avengers:avengers migrate             # import, after you approve the notes
+/avengers:avengers migrate undo <id>   # remove what that import created
+/avengers:avengers migrate skip        # stop the reminder
 ```
 
 Migration reads finished and unfinished runs in `.avengers/`, `CLAUDE.md`, `README.md`, `docs/`, and this repo's Claude Code memory. Scripts remove duplicates and block text that looks like a secret; Friday then keeps what's worth remembering and checks it against the current code. It never changes the source files, never overwrites an existing note, doesn't read transcripts, and `undo` keeps any note you edited since. Secret detection is pattern-based, so review notes before sharing or syncing the vault.
 
 ### Run state and resume
 
-Each run keeps its state in `.avengers/<run-id>/` in your repo: the canonical state, Steve's plan, and a `progress.json` recording the current step. The folder has its own `.gitignore`, so nothing gets committed. If a session drops or gets compacted mid-run, pick it up with `/avengers resume` (or `/avengers resume <run-id>`).
+Each run keeps its state in `.avengers/<run-id>/` in your repo: the canonical state, Steve's plan, and a `progress.json` recording the current step. The folder has its own `.gitignore`, so nothing gets committed. If a session drops or gets compacted mid-run, pick it up with `/avengers:avengers resume` (or `/avengers:avengers resume <run-id>`).
 
 ### Cost report
 
@@ -95,9 +95,9 @@ Inside Claude Code:
 ## Usage
 
 ```
-/avengers <describe the problem you want designed and built>
-/avengers resume [run-id]
-/avengers migrate [--dry-run | skip | undo <id>]
+/avengers:avengers <describe the problem you want designed and built>
+/avengers:avengers resume [run-id]
+/avengers:avengers migrate [--dry-run | skip | undo <id>]
 ```
 
 You can also call any agent directly (`bruce`, `tony`, `thor`, `steve`, `reed`, `friday`) when you only want its view.
@@ -114,7 +114,7 @@ Each agent's model is set in the `model:` field of its frontmatter in [`plugins/
 plugins/avengers/
   .claude-plugin/plugin.json  # plugin manifest
   agents/                     # bruce, tony, thor, steve, reed, friday
-  commands/avengers.md        # /avengers orchestrator (sole writer of the canonical state)
+  commands/avengers.md        # /avengers:avengers orchestrator (sole writer of the canonical state)
   hooks/hooks.json            # token gate, skill + memory hints, migration reminder
   scripts/
     state.js                  # canonical-state engine: init / apply / render

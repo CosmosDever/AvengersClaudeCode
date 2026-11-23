@@ -5,7 +5,7 @@
 // Copyright (c) 2026 CosmosDever
 
 /*
- * Real token/cost report for one /avengers run, read from Claude Code's own
+ * Real token/cost report for one /avengers:avengers run, read from Claude Code's own
  * transcripts — no hooks, no network.
  *
  *   node usage.js <since-ISO-timestamp> [project-cwd]
@@ -75,7 +75,7 @@ function sumFile(file, since) {
   return { model, usage };
 }
 
-// A session ran /avengers if its main transcript has this literal marker,
+// A session ran /avengers:avengers if its main transcript has this literal marker,
 // even if it resumed and spawned no subagent this run (e.g. only Step 4/7).
 function hasAvengersMarker(file) {
   let text;
@@ -123,7 +123,7 @@ function collect(since, cwd, configDir) {
       if (r) add(meta.agentType.slice('avengers:'.length), r);
     }
     // Orchestrator counts if this session spawned an Avengers agent, or ran
-    // /avengers at all (resume sessions can spawn no agent this turn).
+    // /avengers:avengers at all (resume sessions can spawn no agent this turn).
     if (hasAvengersMeta || hasAvengersMarker(sessionFile)) {
       const r = sumFile(sessionFile, since);
       if (r) add('orchestrator', r);
@@ -147,7 +147,7 @@ function format(rows) {
   const w = head.map((h, i) => Math.max(h.length, ...cells.map((c) => c[i].length)));
   return [head, ...cells].map((c) => c.map((v, i) => v.padEnd(w[i])).join('  ').trimEnd()).join('\n') +
     '\n(orchestrator = whole main session since run start; est_usd uses list prices, not your bill;\n' +
-    'a concurrent or later /avengers run in the same repo since `since` is included too)';
+    'a concurrent or later /avengers:avengers run in the same repo since `since` is included too)';
 }
 
 module.exports = { collect, format, sumFile, rateFor };

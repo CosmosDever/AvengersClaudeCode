@@ -1,6 +1,6 @@
 ---
 name: friday
-description: Memory librarian — turns one batch of past-run candidates into a few verified, linked vault notes during `/avengers migrate`. Read-only; returns a JSON proposal and never writes files.
+description: Memory librarian — turns one batch of past-run candidates into a few verified, linked vault notes during `/avengers:avengers migrate`. Read-only; returns a JSON proposal and never writes files.
 model: claude-sonnet-5-5
 effort: medium
 tools: Read, Grep, Glob

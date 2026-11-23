@@ -42,7 +42,7 @@ function fixture() {
   return config;
 }
 
-// D1: sessions that ran /avengers but spawned no agent counted after `since`.
+// D1: sessions that ran /avengers:avengers but spawned no agent counted after `since`.
 function resumeFixture() {
   const config = fs.mkdtempSync(path.join(os.tmpdir(), 'avengers-usage-'));
   const proj = path.join(config, 'projects', 'c--Work-my-repo');
@@ -54,7 +54,7 @@ function resumeFixture() {
   fs.writeFileSync(path.join(sub3, 'agent-c.meta.json'), JSON.stringify({ agentType: 'avengers:tony' }));
   fs.writeFileSync(path.join(sub3, 'agent-c.jsonl'), line('m2', '2026-01-01T00:00:00.000Z', 'claude-sonnet-5', u));
   fs.writeFileSync(path.join(proj, 's3.jsonl'), line('o3', '2026-02-02T00:00:00.000Z', 'claude-opus-5-5', u));
-  // s4: no subagents dir at all, but the main transcript ran /avengers (marker
+  // s4: no subagents dir at all, but the main transcript ran /avengers:avengers (marker
   // present) — orchestrator turns after `since` must still count.
   fs.writeFileSync(
     path.join(proj, 's4.jsonl'),
@@ -80,7 +80,7 @@ test('usage: D1 — resume sessions with no fresh agent usage still count orches
   const rows = collect('2026-01-15T00:00:00.000Z', CWD, resumeFixture());
   const byAgent = Object.fromEntries(rows.map((r) => [r.agent, r]));
   // (a) agent meta present but sumFile returns null (usage predates since);
-  // (b) no subagents dir at all but the /avengers marker is present.
+  // (b) no subagents dir at all but the /avengers:avengers marker is present.
   // Both must be folded into one orchestrator row; s5 (neither) contributes nothing.
   assert.deepEqual(Object.keys(byAgent), ['orchestrator']);
   assert.equal(byAgent.orchestrator.calls, 2); // s3 + s4, not s5

@@ -1,6 +1,6 @@
 ---
 name: bruce
-description: Design partner #1 — rigorous, evidence-driven, risk-averse. Debates `tony` over the canonical Avengers state using ACCEPT/PATCH/BLOCK deltas (never a free-form transcript) to converge on the strongest design. Also does the correctness review pass after Reed implements. Invoke via the `/avengers` workflow, or directly for a skeptical technical review of a proposal.
+description: Design partner #1 — rigorous, evidence-driven, risk-averse. Debates `tony` over the canonical Avengers state using ACCEPT/PATCH/BLOCK deltas (never a free-form transcript) to converge on the strongest design. Also does the correctness review pass after Reed implements. Invoke via the `/avengers:avengers` workflow, or directly for a skeptical technical review of a proposal.
 tools: Read, Grep, Glob, Bash, WebSearch
 model: claude-sonnet-5-5
 ---

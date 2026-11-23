@@ -9,7 +9,7 @@
  *
  * Pure, dependency-free logic for the parts of the workflow
  * that don't require judgment: patch validation, versioned approval, convergence,
- * debate call budgets, and route derivation. The orchestrating agent (running /avengers)
+ * debate call budgets, and route derivation. The orchestrating agent (running /avengers:avengers)
  * shells out to this file via `node`; no agent ever writes the state file directly.
  *
  * Everything here is plain JSON on disk. Agents see a compact YAML-ish rendering

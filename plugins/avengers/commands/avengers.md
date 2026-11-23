@@ -28,7 +28,7 @@ If `$ARGUMENTS` starts with `migrate`, run only this section, then stop. It impo
 2. **Consolidate.** Run `node "$M" batch "$MW/candidates.json" 40 "$MW/batches"`. For each batch in order, skipping any with a saved proposal, call `avengers:friday` with the batch path and the list of note names proposed so far, plus the CLAUDE.md / docs / Claude memory paths from `scan` on the first batch only. Save its JSON verbatim to `$MW/proposal-<batch>.json`.
 3. **Merge and preview.** Run `node "$M" merge "$MW/proposal.json" "$MW"/proposal-*.json`, then `node "$M" write "$MW/proposal.json" --dry-run`. If it reports `errors`, send only those notes back to Friday once; drop what still fails and tell the user.
 4. **Review.** Show counts by type and status, plus the most important notes (name + description) and anything `stale`. On `--dry-run`, stop here and say nothing was written. Otherwise ask the user to approve all, approve some groups, or cancel. Remove what they reject from `proposal.json`.
-5. **Write.** Only on their yes: `node "$M" write "$MW/proposal.json" --migration`. Create `$MW/done`. Report notes written and the undo command, `/avengers migrate undo <id>`.
+5. **Write.** Only on their yes: `node "$M" write "$MW/proposal.json" --migration`. Create `$MW/done`. Report notes written and the undo command, `/avengers:avengers migrate undo <id>`.
 
 Never edit the source runs, docs, or Claude memory. Never read session transcripts unless the user asks.
 

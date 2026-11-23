@@ -329,7 +329,7 @@ function sessionHint(projectDir, { vault = vaultRoot(), home = os.homedir() } = 
   if (!runs && !memories) return null;
   const state = readJson(statePath(vault, repoId(projectDir)));
   if (state && state.schema >= SCHEMA) return null;
-  return `Avengers memory: this repo has ${runs} past run(s) and ${memories} memory note(s) not yet in the vault. Mention once, briefly, that the user can run \`/avengers migrate --dry-run\` to preview importing them, or \`/avengers migrate skip\` to stop this reminder. Do not start the migration unless the user asks.`;
+  return `Avengers memory: this repo has ${runs} past run(s) and ${memories} memory note(s) not yet in the vault. Mention once, briefly, that the user can run \`/avengers:avengers migrate --dry-run\` to preview importing them, or \`/avengers:avengers migrate skip\` to stop this reminder. Do not start the migration unless the user asks.`;
 }
 
 function runHook(event, build) {
