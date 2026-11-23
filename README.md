@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Claude Code plugin that runs five specialised agents through a design → plan → build → review loop:
+A Claude Code plugin that runs specialised agents through a design → plan → build → review loop, with a long-term memory they share across runs:
 
 | Agent | Role | Frontmatter default | Notes |
 |-------|------|----------------------|-------|
@@ -11,6 +11,7 @@ A Claude Code plugin that runs five specialised agents through a design → plan
 | **Thor** | Neutral mediator when Bruce and Tony can't converge | `opus` | `effort: high` |
 | **Steve** | Turns the converged design into an ordered, scrutinized plan | `claude-sonnet-5-5` | |
 | **Reed** | Implements the plan with bundled Ponytail; runs fix cycles | `claude-sonnet-5-5` | |
+| **Friday** | Memory librarian: filters, merges, and verifies past knowledge | `claude-sonnet-5-5` | Only runs during `/avengers migrate`; read-only |
 
 `/avengers` picks the actual per-step model by route (see `commands/avengers.md`) — the table above is each agent's frontmatter default, used when you call an agent directly.
 
@@ -43,6 +44,37 @@ A long skill list can bury the relevant skill in the middle of the context. To p
 - Add a `keywords: [..]` line to a skill's frontmatter to make matching sharper.
 - Try it yourself: `node plugins/avengers/scripts/skills.js match "deploy to staging"`.
 
+### Memory vault (Obsidian-compatible)
+
+Decisions, facts, and gotchas live as plain Markdown notes in a vault outside your repo, at `~/Documents/AvengersVault` by default. Open that folder in [Obsidian](https://obsidian.md) to browse, edit, and graph it; Obsidian is optional.
+
+```
+AvengersVault/
+  shared/                  # knowledge across projects
+  repos/<owner>--<repo>/   # identified by git remote, so clones and worktrees share it
+    decisions/  facts/  gotchas/
+    _inbox/                # drafts, never recalled
+    _migrations/           # manifests for undo
+```
+
+A `UserPromptSubmit` hook adds the names and paths of up to 3 matching notes (plus linked notes) next to your prompt; it doesn't paste their contents. Notes marked `superseded` are not recalled, and notes are treated as background data: when a note disagrees with the code, the code wins. After a successful run, Step 8 can propose new notes, written only with your approval.
+
+- `AVENGERS_VAULT=<dir>` changes the vault location.
+- `AVENGERS_MEMORY=off` turns memory hooks off.
+
+### Migrating an existing project
+
+After updating the plugin, the first session in a repo with past runs shows a one-line reminder. Nothing runs until you ask:
+
+```
+/avengers migrate --dry-run   # preview: writes nothing to the vault
+/avengers migrate             # import, after you approve the notes
+/avengers migrate undo <id>   # remove what that import created
+/avengers migrate skip        # stop the reminder
+```
+
+Migration reads finished and unfinished runs in `.avengers/`, `CLAUDE.md`, `README.md`, `docs/`, and this repo's Claude Code memory. Scripts remove duplicates and block text that looks like a secret; Friday then keeps what's worth remembering and checks it against the current code. It never changes the source files, never overwrites an existing note, doesn't read transcripts, and `undo` keeps any note you edited since. Secret detection is pattern-based, so review notes before sharing or syncing the vault.
+
 ### Run state and resume
 
 Each run keeps its state in `.avengers/<run-id>/` in your repo: the canonical state, Steve's plan, and a `progress.json` recording the current step. The folder has its own `.gitignore`, so nothing gets committed. If a session drops or gets compacted mid-run, pick it up with `/avengers resume` (or `/avengers resume <run-id>`).
@@ -65,9 +97,10 @@ Inside Claude Code:
 ```
 /avengers <describe the problem you want designed and built>
 /avengers resume [run-id]
+/avengers migrate [--dry-run | skip | undo <id>]
 ```
 
-You can also call any agent directly (`bruce`, `tony`, `thor`, `steve`, `reed`) when you only want its view.
+You can also call any agent directly (`bruce`, `tony`, `thor`, `steve`, `reed`, `friday`) when you only want its view.
 
 ### Changing models
 
@@ -80,9 +113,9 @@ Each agent's model is set in the `model:` field of its frontmatter in [`plugins/
   marketplace.json          # marketplace catalog
 plugins/avengers/
   .claude-plugin/plugin.json  # plugin manifest
-  agents/                     # bruce, tony, thor, steve, reed
+  agents/                     # bruce, tony, thor, steve, reed, friday
   commands/avengers.md        # /avengers orchestrator (sole writer of the canonical state)
-  hooks/hooks.json            # PostToolUse token gate (Bash) + UserPromptSubmit skill hint
+  hooks/hooks.json            # token gate, skill + memory hints, migration reminder
   scripts/
     state.js                  # canonical-state engine: init / apply / render
     state.test.js             # unit tests: validator and convergence rules
@@ -93,6 +126,8 @@ plugins/avengers/
     usage.test.js             # tests against a fake transcript tree
     skills.js                 # skill matcher: CLI + UserPromptSubmit hint hook
     skills.test.js            # matcher and hook tests
+    memory.js                 # vault: recall, migration scan/extract, safe write, undo
+    memory.test.js            # vault, migration, and hook tests
   third_party/ponytail/       # vendored Ponytail skills (MIT, pinned)
 ```
 
@@ -101,7 +136,7 @@ plugins/avengers/
 Requires Node 18+. There are no dependencies and no install step.
 
 ```
-node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js plugins/avengers/scripts/truncate-tool-output.test.js plugins/avengers/scripts/usage.test.js plugins/avengers/scripts/skills.test.js
+node --test plugins/avengers/scripts/state.test.js plugins/avengers/scripts/smoke.test.js plugins/avengers/scripts/truncate-tool-output.test.js plugins/avengers/scripts/usage.test.js plugins/avengers/scripts/skills.test.js plugins/avengers/scripts/memory.test.js
 ```
 
 ## Contributing
